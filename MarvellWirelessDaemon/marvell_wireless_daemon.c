@@ -935,6 +935,7 @@ int main(int argc,char** argv)
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGINT,  &sa, NULL);
 
+	//set cap in init.rc
     //android_set_aid_and_cap();
 	init_rfkill_subsystem();
 
