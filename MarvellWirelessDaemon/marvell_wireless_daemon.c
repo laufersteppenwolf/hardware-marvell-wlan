@@ -33,6 +33,7 @@
 #include <sys/types.h>  
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <stddef.h>
 #include <time.h>
@@ -80,8 +81,8 @@
 #ifndef BLUETOOTH_DRIVER_MODULE_PATH
 #define BLUETOOTH_DRIVER_MODULE_PATH "/system/lib/modules/mbt8xxx.ko"
 #endif
-#ifndef BLUETOOTH_DRIVER_MODULE_ARG
 //add option to debug driver mbt_drvdbg=0x3000f 
+#ifndef BLUETOOTH_DRIVER_MODULE_ARG
 #define BLUETOOTH_DRIVER_MODULE_ARG "bt_name=mbt fm_name=mfm fw_name=mrvl/sd8787_uapsta.bin"
 #endif
 
@@ -599,6 +600,9 @@ out:
     return ret;
 }
 
+static void change_mbt_config_attr(void){
+	chmod("/proc/mbt/mbt0/config", 0766);
+}
 
 int bt_fm_enable(void)
 {
@@ -636,6 +640,8 @@ int bt_fm_enable(void)
         ALOGD("bt_fm_enable, set_power fail: errno:%d, %s", errno, strerror(errno));
         goto out;
     }
+
+	change_mbt_config_attr();
 
 out:
     return ret;
