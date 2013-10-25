@@ -160,6 +160,9 @@ static const char* BT_DRIVER_MODULE_PATH = BLUETOOTH_DRIVER_MODULE_PATH;
 static const char* BT_DRIVER_MODULE_NAME = BLUETOOTH_DRIVER_MODULE_NAME;
 static const char* BT_DRIVER_MODULE_ARG  = BLUETOOTH_DRIVER_MODULE_ARG;
 
+static const char* WIFI_DRIVER_MODULE_COUNTRY_ARG = " reg_alpha2=";
+
+
 //Bluetooth init and cal config file
 static const char* BT_DRIVER_MODULE_INIT_ARG = " init_cfg=bt_init_cfg.conf";
 static const char* BT_DRIVER_MODULE_INIT_CFG_PATH = "/etc/firmware/bt_init_cfg.conf";
@@ -172,6 +175,7 @@ static const char* MODULE_FILE = "/proc/modules";
 
 
 static const char DRIVER_PROP_NAME[]    = "wlan.driver.status";
+static const char WIFI_COUNTRY_CODE[] = "wifi.country_code";
 
 static char *rfkill_state_path_wifi = NULL;
 static char *rfkill_state_path_bluetooth = NULL;
@@ -537,12 +541,20 @@ int wifi_uap_enable(const char* driver_module_arg)
 {
     int ret = 0;
     char arg_buf[MAX_BUFFER_SIZE];
+    char country_code[MAX_BUFFER_SIZE];
 
     ALOGD("wifi_uap_enable");
     memset(arg_buf, 0, MAX_BUFFER_SIZE);
     strcpy(arg_buf, driver_module_arg);
     strcat(arg_buf, wifi_drvdbg_arg);
 
+    country_code[0] = '\0';
+    property_get(WIFI_COUNTRY_CODE, country_code, "");
+    if(strcmp("", country_code) != 0)
+    {
+        strcat(arg_buf, WIFI_DRIVER_MODULE_COUNTRY_ARG);
+        strcat(arg_buf, country_code);
+    }
     if (config_file_exist(WIFI_DRIVER_MODULE_INIT_CFG_PATH)){    
         ALOGD("The wifi config file exists");
         strcat(arg_buf, WIFI_DRIVER_MODULE_INIT_ARG);
