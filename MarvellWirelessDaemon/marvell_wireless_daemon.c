@@ -537,6 +537,10 @@ static int config_file_exist(const char* config_file)
     return 0;
 }
 
+static void change_wlan_config_attr(void){
+	chmod("/proc/mwlan/config", 0766);
+}
+
 int wifi_uap_enable(const char* driver_module_arg)
 {
     int ret = 0;
@@ -589,6 +593,9 @@ int wifi_uap_enable(const char* driver_module_arg)
             goto out;
         }
     }
+
+	change_wlan_config_attr();
+	
 out:
     return ret;
 }
