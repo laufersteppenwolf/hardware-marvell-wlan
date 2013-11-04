@@ -83,7 +83,7 @@
 #endif
 //add option to debug driver mbt_drvdbg=0x3000f 
 #ifndef BLUETOOTH_DRIVER_MODULE_ARG
-#define BLUETOOTH_DRIVER_MODULE_ARG "bt_name=mbt fm_name=mfm fw_name=mrvl/sd8787_uapsta.bin"
+#define BLUETOOTH_DRIVER_MODULE_ARG "fw_name=mrvl/sd8787_uapsta.bin"
 #endif
 
 
@@ -620,7 +620,7 @@ out:
 }
 
 static void change_mbt_config_attr(void){
-	chmod("/proc/mbt/mbt0/config", 0766);
+	chmod("/proc/mbt/mbtchar0/config", 0766);
 }
 
 int bt_fm_enable(void)
@@ -961,7 +961,7 @@ int main(int argc,char** argv)
     sigaction(SIGINT,  &sa, NULL);
 
 	//set cap in init.rc
-    //android_set_aid_and_cap();
+    android_set_aid_and_cap();
 	init_rfkill_subsystem();
 
     listenfd = serv_listen (WIRELESS_UNIX_SOCKET_DIR);
