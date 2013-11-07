@@ -686,8 +686,6 @@ static int is_rfkill_disabled(void)
     char value[PROPERTY_VALUE_MAX];
 
     property_get("ro.rfkilldisabled", value, "0");
-    ALOGD("is_rfkill_disabled ? [%s]", value);
-
     if (strcmp(value, "1") == 0) {
         return 1;
     }
@@ -725,10 +723,12 @@ static int init_rfkill_subsystem(void)
         }
     }
 
-	if(rfkill_bt_id>=0)
+	if(rfkill_bt_id>=0){
     	asprintf(&rfkill_state_path_bluetooth, "/sys/class/rfkill/rfkill%d/state", rfkill_bt_id);
-	if(rfkill_wifi_id>=0)
+	}
+	if(rfkill_wifi_id>=0){
     	asprintf(&rfkill_state_path_wifi, "/sys/class/rfkill/rfkill%d/state", rfkill_wifi_id);
+	}
 	
     return 0;
 }
@@ -744,11 +744,14 @@ static int set_wireless_power(char* path,int on)
     if (is_rfkill_disabled())
         return 0;
 
+	ALOGE("set_wireless_power %s",
+		on?"on":"off");
+
     fd = open(path, O_WRONLY);
 
     if (fd < 0)
     {
-        ALOGE("set_bluetooth_power : open(%s) for write failed: %s (%d)",
+        ALOGE("set_wireless_power : open(%s) for write failed: %s (%d)",
             path, strerror(errno), errno);
         return ret;
     }
@@ -756,7 +759,7 @@ static int set_wireless_power(char* path,int on)
     sz = write(fd, &buffer, 1);
 
     if (sz < 0) {
-        ALOGE("set_bluetooth_power : write(%s) failed: %s (%d)",
+        ALOGE("set_wireless_power : write(%s) failed: %s (%d)",
             path, strerror(errno),errno);
     }
     else
@@ -773,11 +776,17 @@ int set_power(int on)
 {
     if((!on) && (!(power_sd8787.on)))
     {
-    	set_wireless_power(rfkill_state_path_wifi,on);
+    	if(rfkill_state_path_wifi)
+			set_wireless_power(rfkill_state_path_wifi,on);
+		else if(rfkill_state_path_bluetooth)
+			set_wireless_power(rfkill_state_path_bluetooth,on);
     }
     else if(on)
     {
-    	set_wireless_power(rfkill_state_path_wifi,on);
+    	if(rfkill_state_path_wifi)
+			set_wireless_power(rfkill_state_path_wifi,on);
+		else if(rfkill_state_path_bluetooth)
+			set_wireless_power(rfkill_state_path_bluetooth,on);
     }
     return 0;
 }
