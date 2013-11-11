@@ -81,7 +81,7 @@
 #ifndef BLUETOOTH_DRIVER_MODULE_PATH
 #define BLUETOOTH_DRIVER_MODULE_PATH "/system/lib/modules/mbt8xxx.ko"
 #endif
-//add option to debug driver mbt_drvdbg=0x3000f 
+//add option to debug driver mbt_drvdbg=0x3000f mbt_drvdbg=0x1000003f
 #ifndef BLUETOOTH_DRIVER_MODULE_ARG
 #define BLUETOOTH_DRIVER_MODULE_ARG "fw_name=mrvl/sd8787_uapsta.bin"
 #endif
@@ -168,6 +168,7 @@ static const char* BT_DRIVER_MODULE_INIT_ARG = " init_cfg=bt_init_cfg.conf";
 static const char* BT_DRIVER_MODULE_INIT_CFG_PATH = "/etc/firmware/bt_init_cfg.conf";
 static const char* BT_DRIVER_MODULE_CAL_DATA_ARG = " init_cfg=bt_cal_data.conf";
 static const char* BT_DRIVER_MODULE_CAL_DATA_CFG_PATH = "/etc/firmware/bt_cal_data.conf";
+static const char* BT_DRIVER_IFAC_NAME =     "/sys/class/bt_fm_nfc/mbtchar0";
 
 static const char* WIRELESS_UNIX_SOCKET_DIR = "/data/system/wireless/socket_daemon";
 
@@ -586,6 +587,8 @@ int wifi_uap_enable(const char* driver_module_arg)
 
     if(check_driver_loaded(WIFI_DRIVER_MODULE_2_NAME) == FALSE)
     {
+    
+		ALOGD("insmod wifi arguments %s\n",arg_buf);
         ret = insmod(WIFI_DRIVER_MODULE_2_PATH, arg_buf);
         if (ret < 0)
         {
@@ -628,6 +631,13 @@ int bt_fm_enable(void)
     int ret = 0;
     char arg_buf[MAX_BUFFER_SIZE];
 
+    ret = set_power(TRUE);
+    if (ret < 0)
+    {
+        ALOGD("bt_fm_enable, set_power fail: errno:%d, %s", errno, strerror(errno));
+        goto out;
+    }
+
     ALOGD("bt_fm_enable");
     memset(arg_buf, 0, MAX_BUFFER_SIZE);
     strcpy(arg_buf, BT_DRIVER_MODULE_ARG);
@@ -646,6 +656,7 @@ int bt_fm_enable(void)
 
     if(check_driver_loaded(BT_DRIVER_MODULE_NAME) == FALSE)
     {
+    	ALOGD("insmod bt arguments %s\n",arg_buf);
         ret = insmod(BT_DRIVER_MODULE_PATH, arg_buf);
         if (ret < 0) {
             error("insmod %s failed\n", BT_DRIVER_MODULE_PATH);
@@ -653,10 +664,10 @@ int bt_fm_enable(void)
         }
     }
 
-    ret = set_power(TRUE);
-    if (ret < 0)
+    ret = wait_interface_ready(BT_DRIVER_IFAC_NAME);
+    if(ret < 0)
     {
-        ALOGD("bt_fm_enable, set_power fail: errno:%d, %s", errno, strerror(errno));
+    	ALOGD("timeout to enable bt %s\n",BT_DRIVER_IFAC_NAME);        
         goto out;
     }
 
