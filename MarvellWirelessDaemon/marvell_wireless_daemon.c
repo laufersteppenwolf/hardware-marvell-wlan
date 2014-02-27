@@ -170,7 +170,7 @@ static const char* BT_DRIVER_MODULE_CAL_DATA_ARG = " init_cfg=bt_cal_data.conf";
 static const char* BT_DRIVER_MODULE_CAL_DATA_CFG_PATH = "/etc/firmware/bt_cal_data.conf";
 static const char* BT_DRIVER_IFAC_NAME =     "/sys/class/bt_fm_nfc/mbtchar0";
 
-static const char* WIRELESS_UNIX_SOCKET_DIR = "/data/system/wireless/socket_daemon";
+static const char* WIRELESS_UNIX_SOCKET_DIR = "/data/misc/wifi/sockets/socket_daemon";
 
 static const char* MODULE_FILE = "/proc/modules";
 
@@ -622,21 +622,12 @@ out:
     return ret;
 }
 
-static void change_mbt_config_attr(void){
-	chmod("/proc/mbt/mbtchar0/config", 0766);
-}
 
 int bt_fm_enable(void)
 {
     int ret = 0;
     char arg_buf[MAX_BUFFER_SIZE];
 
-    ret = set_power(TRUE);
-    if (ret < 0)
-    {
-        ALOGD("bt_fm_enable, set_power fail: errno:%d, %s", errno, strerror(errno));
-        goto out;
-    }
 
     ALOGD("bt_fm_enable");
     memset(arg_buf, 0, MAX_BUFFER_SIZE);
@@ -663,15 +654,12 @@ int bt_fm_enable(void)
             goto out;
         }
     }
-
-    ret = wait_interface_ready(BT_DRIVER_IFAC_NAME);
-    if(ret < 0)
+    ret = set_power(TRUE);
+    if (ret < 0)
     {
-    	ALOGD("timeout to enable bt %s\n",BT_DRIVER_IFAC_NAME);        
+        ALOGD("bt_fm_enable, set_power fail: errno:%d, %s", errno, strerror(errno));
         goto out;
     }
-
-	change_mbt_config_attr();
 
 out:
     return ret;
@@ -778,6 +766,7 @@ static int set_wireless_power(char* path,int on)
 
     if (fd >= 0)
         close(fd);
+		
 
     return ret;
 }

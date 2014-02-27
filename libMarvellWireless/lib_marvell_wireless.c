@@ -34,17 +34,25 @@
 #include <errno.h>
 #include "marvell_wireless.h"
 
+#include <android/log.h>
+
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+
 #define SOCKERR_IO          -1
 #define SOCKERR_CLOSED      -2
 #define SOCKERR_INVARG      -3
 #define SOCKERR_TIMEOUT     -4
 #define SOCKERR_OK          0
 #define MAX_BUFFER_SIZE    256
+#define MAX_DRV_ARG_SIZE   128
+
 
 static int wireless_send_command(const char *cmd);
 static int cli_conn (const char *name);
 
-static const char *local_socket_dir = "/data/system/wireless/socket_daemon";
+static const char *local_socket_dir = "/data/misc/wifi/sockets/socket_daemon";
 /* interfaces implements for wifi,uAP,bluetooth, FMradio*/
 int wifi_enable(void)
 {
@@ -71,6 +79,17 @@ int bluetooth_disable(void)
 {
     return wireless_send_command("BT_DISABLE");
 }
+
+int bluetooth_poweron(void)
+{
+    return wireless_send_command("BT_ON");
+}
+
+int bluetooth_poweroff(void)
+{
+    return wireless_send_command("BT_OFF");
+}
+
 int fm_enable(void)
 {
     return wireless_send_command("FM_ENABLE");
@@ -79,6 +98,29 @@ int fm_disable(void)
 {
     return wireless_send_command("FM_DISABLE");
 }
+int wifi_set_drv_arg(const char * wifi_drv_arg)
+{
+    char wifi_drvarg[MAX_DRV_ARG_SIZE] = "WIFI_DRV_ARG ";
+    if (strlen(wifi_drv_arg) >= (MAX_DRV_ARG_SIZE - strlen(wifi_drvarg))) {
+        LOGE("The wifi driver arg[%s] is too long( >= %d )!", wifi_drv_arg,
+                MAX_DRV_ARG_SIZE - strlen(wifi_drvarg));
+        return -1;
+    }
+
+    return wireless_send_command(strcat(wifi_drvarg, wifi_drv_arg));
+}
+int bt_set_drv_arg(const char * bt_drv_arg)
+{
+    char bt_drvarg[MAX_DRV_ARG_SIZE] = "BT_DRV_ARG ";
+    if (strlen(bt_drv_arg) >= (MAX_DRV_ARG_SIZE - strlen(bt_drvarg))) {
+        LOGE("The bt driver arg[%s] is too long( >= %d )!", bt_drv_arg,
+                MAX_DRV_ARG_SIZE - strlen(bt_drvarg));
+        return -1;
+    }
+
+    return wireless_send_command(strcat(bt_drvarg, bt_drv_arg));
+}
+
 /*send wireless command:wifi,uAP,Bluetooth,FM enable/disable commands to marvell wireless daemon*/
 static int wireless_send_command(const char *cmd)
 {
@@ -92,7 +134,7 @@ static int wireless_send_command(const char *cmd)
 
     conn_fd = cli_conn (local_socket_dir);
     if (conn_fd < 0) {
-        ALOGE("cli_conn error.\n");
+        LOGE("cli_conn error.\n");
         ret = 1;
         goto out1;
     }
@@ -103,29 +145,29 @@ static int wireless_send_command(const char *cmd)
 
     if (n == SOCKERR_IO) 
     {
-        ALOGE("write error on fd %d\n", conn_fd);
+        LOGE("write error on fd %d\n", conn_fd);
         ret = 1;
         goto out;
     }
     else if (n == SOCKERR_CLOSED) 
     {
-        ALOGE("fd %d has been closed.\n", conn_fd);
+        LOGE("fd %d has been closed.\n", conn_fd);
         ret = 1;
         goto out;
     }
     else 
-        ALOGE("Wrote %s to server. \n", buffer);
+        LOGI("Wrote %s to server. \n", buffer);
 
     n = read(conn_fd, buffer, sizeof (buffer));
     if (n == SOCKERR_IO) 
     {
-        ALOGE("read error on fd %d\n", conn_fd);
+        LOGE("read error on fd %d\n", conn_fd);
         ret = 1;
         goto out;
     }
     else if (n == SOCKERR_CLOSED) 
     {
-        ALOGE("fd %d has been closed.\n", conn_fd);
+        LOGE("fd %d has been closed.\n", conn_fd);
         ret = 1;
         goto out;
     }
@@ -152,7 +194,7 @@ static int cli_conn (const char *name)
     /* create a Unix domain stream socket */
     if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
     {
-        ALOGE("create socket failed, ret:%d, strerror:%s", fd, strerror(errno));
+        LOGE("create socket failed, ret:%d, strerror:%s", fd, strerror(errno));
         return(-1);
     }
 
@@ -165,7 +207,7 @@ static int cli_conn (const char *name)
 
     if ((ret = connect (fd, (struct sockaddr *) &unix_addr, len)) < 0)
     {
-        ALOGE("connect failed, ret:%d, strerror:%s", ret, strerror(errno));
+        LOGE("connect failed, ret:%d, strerror:%s", ret, strerror(errno));
         goto error;
     }
     return (fd);

@@ -2,77 +2,54 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 
-ifdef WIFI_DRIVER_MODULE_PATH
-LOCAL_CFLAGS += -DWIFI_DRIVER_MODULE_PATH=\"$(WIFI_DRIVER_MODULE_PATH)\"
-endif
-ifdef WIFI_DRIVER_MODULE_ARG
-LOCAL_CFLAGS += -DWIFI_DRIVER_MODULE_ARG=\"$(WIFI_DRIVER_MODULE_ARG)\"
-endif
-ifdef WIFI_DRIVER_P2P_MODULE_ARG
-LOCAL_CFLAGS += -DWIFI_DRIVER_P2P_MODULE_ARG=\"$(WIFI_DRIVER_P2P_MODULE_ARG)\"
-endif
-ifdef WIFI_DRIVER_MODULE_NAME
-LOCAL_CFLAGS += -DWIFI_DRIVER_MODULE_NAME=\"$(WIFI_DRIVER_MODULE_NAME)\"
-endif
-
-ifdef WIFI_SDIO_IF_DRIVER_MODULE_PATH
-LOCAL_CFLAGS += -DWIFI_SDIO_IF_DRIVER_MODULE_PATH=\"$(WIFI_SDIO_IF_DRIVER_MODULE_PATH)\"
-endif
-ifdef WIFI_SDIO_IF_DRIVER_MODULE_ARG
-LOCAL_CFLAGS += -DWIFI_SDIO_IF_DRIVER_MODULE_ARG=\"$(WIFI_SDIO_IF_DRIVER_MODULE_ARG)\"
-endif
-ifdef WIFI_SDIO_IF_DRIVER_MODULE_NAME
-LOCAL_CFLAGS += -DWIFI_SDIO_IF_DRIVER_MODULE_NAME=\"$(WIFI_SDIO_IF_DRIVER_MODULE_NAME)\"
-endif
-
-ifdef BLUETOOTH_DRIVER_MODULE_PATH
-LOCAL_CFLAGS += -DBLUETOOTH_DRIVER_MODULE_PATH=\"$(BLUETOOTH_DRIVER_MODULE_PATH)\"
-endif
-ifdef BLUETOOTH_DRIVER_MODULE_ARG
-LOCAL_CFLAGS += -DBLUETOOTH_DRIVER_MODULE_ARG=\"$(BLUETOOTH_DRIVER_MODULE_ARG)\"
-endif
-ifdef BLUETOOTH_DRIVER_MODULE_NAME
-LOCAL_CFLAGS += -DBLUETOOTH_DRIVER_MODULE_NAME=\"$(BLUETOOTH_DRIVER_MODULE_NAME)\"
-endif
-
-
+LOCAL_LDLIBS := -lm -llog
 
 LOCAL_C_INCLUDES := \
 
 LOCAL_SRC_FILES := \
         marvell_wireless_daemon.c
 
+#ifeq ($(shell if [ $(PLATFORM_SDK_VERSION) -ge 9 ]; then echo big9; fi),big9)
+#LOCAL_C_INCLUDES := \
+#        external/bluetooth/bluez/lib
+#else
+#LOCAL_C_INCLUDES := \
+#        external/bluetooth/bluez/include
+#endif
 
 LOCAL_SHARED_LIBRARIES := \
     libc\
     libcutils \
     libutils \
-    libnetutils
+    libnetutils\
+    libbt-vendor
 
 LOCAL_MODULE:=MarvellWirelessDaemon
 LOCAL_MODULE_TAGS := optional
-
-
 ifdef SD8787_NEED_CALIBRATE
 LOCAL_CFLAGS += -DSD8787_NEED_CALIBRATE
 endif
 
+ifeq ($(SD8787_CAL_ON_BOARD),true)
+LOCAL_CFLAGS += -DSD8787_CAL_ON_BOARD
+# Make symlinks from /system/etc/firmware/mrvl to /data/misc/wireless
+CONFIGS := \
+	wifi_init_cfg.conf \
+	wifi_cal_data.conf \
+	bt_init_cfg.conf
+SYMLINKS := $(addprefix $(TARGET_OUT)/etc/firmware/mrvl/,$(CONFIGS))
+$(SYMLINKS): CAL_BINARY := /data/misc/wireless
+$(SYMLINKS): $(LOCAL_INSTALLED_MODULE) $(LOCAL_PATH)/Android.mk
+	@echo "Symlink: $@ -> $(CAL_BINARY)"
+	@mkdir -p $(dir $@)
+	@rm -rf $@
+	$(hide) ln -sf $(CAL_BINARY)/$(notdir $@) $@
+
+ALL_DEFAULT_INSTALLED_MODULES += $(SYMLINKS)
+
+# We need this so that the installed files could be picked up based on the
+# local module name
+ALL_MODULES.$(LOCAL_MODULE).INSTALLED := \
+    $(ALL_MODULES.$(LOCAL_MODULE).INSTALLED) $(SYMLINKS)
+endif
 include $(BUILD_EXECUTABLE)
-
-
-include $(CLEAR_VARS)
-LOCAL_SRC_FILES:= \
-	lib_marvell_wireless.c
-
-
-LOCAL_SHARED_LIBRARIES := \
-    libcutils \
-    libutils 
-
-LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE:= libMarvellWireless
-
-include $(BUILD_SHARED_LIBRARY)
-
-
-
